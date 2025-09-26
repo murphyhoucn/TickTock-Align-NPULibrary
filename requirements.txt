@@ -1,0 +1,12 @@
+# Python依赖包
+opencv-python>=4.5.0
+numpy>=1.19.0
+
+# 注意：延时摄影视频功能还需要安装FFmpeg
+# Windows用户可以：
+# 1. 从 https://ffmpeg.org/download.html 下载FFmpeg
+# 2. 或使用 winget install FFmpeg
+# 3. 或使用 choco install ffmpeg（需要Chocolatey）
+# 
+# Linux用户：sudo apt-get install ffmpeg
+# macOS用户：brew install ffmpeg

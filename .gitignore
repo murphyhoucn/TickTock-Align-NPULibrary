@@ -1,0 +1,10 @@
+__pycache__/
+
+NPU-Lib/
+NPU-Lib-Align/
+Video/
+
+
+*.png
+*.jpg
+*.mp4
