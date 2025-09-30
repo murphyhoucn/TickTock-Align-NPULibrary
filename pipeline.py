@@ -449,11 +449,11 @@ class NPUPipeline:
 
 ### 4. 马赛克拼图
 - **输出目录**: {self.mosaic_dir}
-- **状态**: {'🚧 开发中' if 'mosaic' in self.steps else '⏭️ 跳过'}
+- **状态**: {'✅ 完成' if 'mosaic' in self.steps else '⏭️ 跳过'}
 
 ### 5. 统计信息
 - **输出目录**: {self.stats_dir}
-- **状态**: {'🚧 开发中' if 'stats' in self.steps else '⏭️ 跳过'}
+- **状态**: {'✅ 完成' if 'stats' in self.steps else '⏭️ 跳过'}
 
 ## 文件结构
 
