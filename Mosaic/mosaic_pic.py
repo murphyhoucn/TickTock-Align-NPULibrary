@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class MosaicGenerator:
     """马赛克拼图生成器"""
     
-    def __init__(self, input_dir, output_dir, target_width=4096, max_output_size=16384):
+    def __init__(self, input_dir, output_dir, target_width=16384, max_output_size=32768):
         """
         初始化马赛克生成器
         
@@ -72,59 +72,65 @@ class MosaicGenerator:
             image_count (int): 图像数量
             
         Returns:
-            tuple: (rows, cols, cell_size) 行数、列数、单元格大小
+            tuple: (rows, cols, cell_width, cell_height) 行数、列数、单元格宽度、单元格高度
         """
         # 计算接近正方形的网格
         cols = math.ceil(math.sqrt(image_count))
         rows = math.ceil(image_count / cols)
         
-        # 计算单元格大小
-        cell_size = self.target_width // cols
+        # 计算单元格大小（保持4:3比例）
+        cell_width = self.target_width // cols
+        cell_height = int(cell_width * 3 / 4)  # 4:3比例
         
         # 检查输出尺寸是否超过限制
-        output_height = rows * cell_size
+        output_height = rows * cell_height
         if output_height > self.max_output_size:
             # 重新计算以适应最大尺寸限制
-            max_rows = self.max_output_size // cell_size
+            max_rows = self.max_output_size // cell_height
             if max_rows < rows:
-                cell_size = self.max_output_size // rows
-                cols = self.target_width // cell_size
+                cell_height = self.max_output_size // rows
+                cell_width = int(cell_height * 4 / 3)  # 保持4:3比例
+                cols = self.target_width // cell_width
                 rows = math.ceil(image_count / cols)
         
         logger.info(f"网格布局: {rows}行 × {cols}列")
-        logger.info(f"单元格大小: {cell_size}×{cell_size} 像素")
-        logger.info(f"输出尺寸: {cols * cell_size}×{rows * cell_size} 像素")
+        logger.info(f"单元格大小: {cell_width}×{cell_height} 像素 (4:3比例)")
+        logger.info(f"输出尺寸: {cols * cell_width}×{rows * cell_height} 像素")
         
-        return rows, cols, cell_size
+        return rows, cols, cell_width, cell_height
     
-    def resize_image_smart(self, image, target_size):
+    def resize_image_fit(self, image, target_width, target_height):
         """
-        智能缩放图像，保持宽高比并居中裁剪
+        智能缩放图像，保持宽高比并适配到目标尺寸（不裁切）
         
         Args:
             image (PIL.Image): 输入图像
-            target_size (int): 目标尺寸（正方形）
+            target_width (int): 目标宽度
+            target_height (int): 目标高度
             
         Returns:
             PIL.Image: 缩放后的图像
         """
-        # 计算缩放比例
+        # 计算缩放比例（确保图像完全适配在目标区域内）
         img_width, img_height = image.size
-        scale = max(target_size / img_width, target_size / img_height)
+        scale_w = target_width / img_width
+        scale_h = target_height / img_height
+        scale = min(scale_w, scale_h)  # 使用较小的缩放比例确保不裁切
         
         # 缩放图像
         new_width = int(img_width * scale)
         new_height = int(img_height * scale)
         resized = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
         
-        # 居中裁剪
-        left = (new_width - target_size) // 2
-        top = (new_height - target_size) // 2
-        cropped = resized.crop((left, top, left + target_size, top + target_size))
+        # 创建目标大小的画布，居中放置图像
+        canvas = Image.new('RGB', (target_width, target_height), (240, 240, 240))
+        x_offset = (target_width - new_width) // 2
+        y_offset = (target_height - new_height) // 2
+        canvas.paste(resized, (x_offset, y_offset))
         
-        return cropped
+        return canvas
     
-    def create_mosaic_grid(self, image_files, rows, cols, cell_size):
+    def create_mosaic_grid(self, image_files, rows, cols, cell_width, cell_height):
         """
         创建网格马赛克
         
@@ -132,14 +138,15 @@ class MosaicGenerator:
             image_files (list): 图像文件列表
             rows (int): 行数
             cols (int): 列数
-            cell_size (int): 单元格大小
+            cell_width (int): 单元格宽度
+            cell_height (int): 单元格高度
             
         Returns:
             PIL.Image: 马赛克图像
         """
         # 创建空白画布
-        output_width = cols * cell_size
-        output_height = rows * cell_size
+        output_width = cols * cell_width
+        output_height = rows * cell_height
         mosaic = Image.new('RGB', (output_width, output_height), (255, 255, 255))
         
         logger.info(f"开始生成马赛克，画布尺寸: {output_width}×{output_height}")
@@ -155,11 +162,11 @@ class MosaicGenerator:
             try:
                 # 读取并缩放图像
                 with Image.open(img_file) as img:
-                    resized_img = self.resize_image_smart(img, cell_size)
+                    resized_img = self.resize_image_fit(img, cell_width, cell_height)
                     
                     # 计算粘贴位置
-                    x = col * cell_size
-                    y = row * cell_size
+                    x = col * cell_width
+                    y = row * cell_height
                     
                     # 粘贴到画布
                     mosaic.paste(resized_img, (x, y))
@@ -173,23 +180,26 @@ class MosaicGenerator:
         
         return mosaic
     
-    def create_timeline_mosaic(self, image_files, cell_size=128):
+    def create_timeline_mosaic(self, image_files, cell_width=128):
         """
         创建时间线马赛克（按时间顺序排列）
         
         Args:
             image_files (list): 图像文件列表
-            cell_size (int): 单元格大小
+            cell_width (int): 单元格宽度
             
         Returns:
             PIL.Image: 时间线马赛克图像
         """
+        # 计算4:3比例的单元格尺寸
+        cell_height = int(cell_width * 3 / 4)
+        
         # 计算布局：时间线风格，固定列数
-        cols = self.target_width // cell_size
+        cols = self.target_width // cell_width
         rows = math.ceil(len(image_files) / cols)
         
-        output_width = cols * cell_size
-        output_height = rows * cell_size
+        output_width = cols * cell_width
+        output_height = rows * cell_height
         
         logger.info(f"时间线马赛克布局: {rows}行 × {cols}列")
         logger.info(f"输出尺寸: {output_width}×{output_height}")
@@ -199,7 +209,7 @@ class MosaicGenerator:
         
         # 添加时间标注
         try:
-            font = ImageFont.truetype("arial.ttf", cell_size // 8)
+            font = ImageFont.truetype("arial.ttf", cell_width // 8)
         except:
             font = ImageFont.load_default()
         
@@ -212,22 +222,22 @@ class MosaicGenerator:
             
             try:
                 with Image.open(img_file) as img:
-                    resized_img = self.resize_image_smart(img, cell_size - 2)  # 留2px边距
+                    resized_img = self.resize_image_fit(img, cell_width - 2, cell_height - 2)  # 留2px边距
                     
                     # 计算位置
-                    x = col * cell_size + 1
-                    y = row * cell_size + 1
+                    x = col * cell_width + 1
+                    y = row * cell_height + 1
                     
                     # 粘贴图像
                     mosaic.paste(resized_img, (x, y))
                     
                     # 添加文件名标注（可选）
-                    if cell_size >= 64:  # 只在较大尺寸时添加文字
+                    if cell_width >= 64:  # 只在较大尺寸时添加文字
                         text = img_file.stem[4:12]  # 只显示文件名的第5到第12个字符
                         text_bbox = draw.textbbox((0, 0), text, font=font)
                         text_width = text_bbox[2] - text_bbox[0]
-                        text_x = x + (cell_size - 4 - text_width) // 2
-                        text_y = y + cell_size - 16
+                        text_x = x + (cell_width - 4 - text_width) // 2
+                        text_y = y + cell_height - 16
                         
                         # 添加文字背景
                         draw.text((text_x, text_y), text, fill=(255, 255, 255), font=font)
@@ -255,8 +265,8 @@ class MosaicGenerator:
         try:
             # 1. 生成网格马赛克
             logger.info("生成网格马赛克...")
-            rows, cols, cell_size = self.calculate_grid_layout(len(image_files))
-            grid_mosaic = self.create_mosaic_grid(image_files, rows, cols, cell_size)
+            rows, cols, cell_width, cell_height = self.calculate_grid_layout(len(image_files))
+            grid_mosaic = self.create_mosaic_grid(image_files, rows, cols, cell_width, cell_height)
             
             grid_output = self.output_dir / "mosaic_grid.jpg"
             grid_mosaic.save(grid_output, "JPEG", quality=90, optimize=True)
@@ -264,28 +274,28 @@ class MosaicGenerator:
             
             # 2. 生成时间线马赛克（小尺寸）
             logger.info("生成时间线马赛克（小尺寸）...")
-            timeline_small = self.create_timeline_mosaic(image_files, cell_size=64)
+            timeline_small = self.create_timeline_mosaic(image_files, cell_width=64)
             timeline_small_output = self.output_dir / "mosaic_timeline_small.jpg"
             timeline_small.save(timeline_small_output, "JPEG", quality=90, optimize=True)
             logger.info(f"小尺寸时间线马赛克已保存: {timeline_small_output}")
             
             # 3. 生成时间线马赛克（中等尺寸）
-            if len(image_files) <= 500:  # 只在图像数量较少时生成大尺寸
+            if len(image_files) <= 1000:  # 只在图像数量较少时生成大尺寸
                 logger.info("生成时间线马赛克（中等尺寸）...")
-                timeline_medium = self.create_timeline_mosaic(image_files, cell_size=128)
+                timeline_medium = self.create_timeline_mosaic(image_files, cell_width=128)
                 timeline_medium_output = self.output_dir / "mosaic_timeline_medium.jpg"
                 timeline_medium.save(timeline_medium_output, "JPEG", quality=90, optimize=True)
                 logger.info(f"中等尺寸时间线马赛克已保存: {timeline_medium_output}")
             
             # 4. 生成缩略图概览
             logger.info("生成缩略图概览...")
-            thumbnail_mosaic = self.create_timeline_mosaic(image_files, cell_size=32)
+            thumbnail_mosaic = self.create_timeline_mosaic(image_files, cell_width=32)
             thumbnail_output = self.output_dir / "mosaic_thumbnail.jpg"
             thumbnail_mosaic.save(thumbnail_output, "JPEG", quality=85, optimize=True)
             logger.info(f"缩略图概览已保存: {thumbnail_output}")
             
             # 生成信息报告
-            self.generate_info_report(image_files, rows, cols, cell_size)
+            self.generate_info_report(image_files, rows, cols, cell_width, cell_height)
             
             return True
             
@@ -293,7 +303,7 @@ class MosaicGenerator:
             logger.error(f"生成马赛克失败: {e}")
             return False
     
-    def generate_info_report(self, image_files, rows, cols, cell_size):
+    def generate_info_report(self, image_files, rows, cols, cell_width, cell_height):
         """生成马赛克信息报告"""
         report_path = self.output_dir / "mosaic_info.md"
         
@@ -325,8 +335,8 @@ class MosaicGenerator:
 
 ### 1. 网格马赛克 (mosaic_grid.jpg)
 - **布局**: {rows}行 × {cols}列
-- **单元格大小**: {cell_size}×{cell_size} 像素
-- **输出尺寸**: {cols * cell_size}×{rows * cell_size} 像素
+- **单元格大小**: {cell_width}×{cell_height} 像素 (4:3比例)
+- **输出尺寸**: {cols * cell_width}×{rows * cell_height} 像素
 - **文件大小**: {get_file_size(self.output_dir / "mosaic_grid.jpg")}
 
 ### 2. 时间线马赛克 - 小尺寸 (mosaic_timeline_small.jpg)
@@ -372,8 +382,8 @@ def main():
     parser = argparse.ArgumentParser(description='马赛克拼图生成器')
     parser.add_argument('input_dir', help='输入图像目录')
     parser.add_argument('output_dir', help='输出目录')
-    parser.add_argument('--width', type=int, default=4096, help='目标输出宽度（默认4096）')
-    parser.add_argument('--max-size', type=int, default=16384, help='最大输出尺寸（默认16384）')
+    parser.add_argument('--width', type=int, default=16384, help='目标输出宽度（默认16384）')
+    parser.add_argument('--max-size', type=int, default=32768, help='最大输出尺寸（默认32768）')
     
     args = parser.parse_args()
     

@@ -23,9 +23,10 @@ import shutil
 from datetime import datetime
 
 from Resize.image_resizer import process_directory as resize_images
-from Align.align_lib import TickTockAlign
+from Align.main_align import MainAlign
 from Timelapse.create_timelapse import create_file_list, create_timelapse_video
 from Stas.visual_report_generator import generate_npu_statistics_reports
+from PIL import Image
 
 
 # 配置日志
@@ -70,7 +71,7 @@ class TickTockPipeline:
         image_files = sorted(set(image_files), key=lambda x: (str(x.parent), x.name))
         return image_files
     
-    def __init__(self, input_dir, output_dir=None, steps=None):
+    def __init__(self, input_dir, output_dir=None, steps=None, align_method="superpoint"):
         """
         初始化处理流水线
         
@@ -78,6 +79,9 @@ class TickTockPipeline:
             input_dir (str): 输入目录 (NPU-Everyday 或 NPU-Everyday-Sample)
             steps (list): 要执行的步骤列表，None表示执行所有步骤
                         可选: ['resize', 'align', 'timelapse', 'mosaic', 'stats']
+            align_method (str): 对齐方法选择
+                        可选: ['superpoint', 'enhanced', 'auto']
+                        默认: 'superpoint' (深度学习方法，LoFTR+SuperPoint)
         """
         self.input_dir = Path(input_dir)
         self.input_name = self.input_dir.name
@@ -93,9 +97,13 @@ class TickTockPipeline:
         # 要执行的步骤
         self.steps = steps or ['resize', 'align', 'timelapse', 'mosaic', 'stats']
         
+        # 深度学习对齐方法
+        self.align_method = align_method
+        
         logger.info(f"初始化NPU处理流水线")
         logger.info(f"输入目录: {self.input_dir}")
         logger.info(f"输出目录: {self.output_dir}")
+        logger.info(f"对齐方法: {self.align_method}")
         logger.info(f"执行步骤: {', '.join(self.steps)}")
     
     def check_environment(self):
@@ -152,7 +160,7 @@ class TickTockPipeline:
         
         logger.info("=" * 60)
         logger.info("步骤2: 图像对齐")
-        logger.info("使用SIFT特征点对齐图像序列")
+        logger.info("使用深度学习方法对齐图像序列 (LoFTR + 传统方法回退)")
         logger.info("=" * 60)
         
         # 确定输入目录：如果做了放缩就用放缩后的，否则用原始的
@@ -175,13 +183,14 @@ class TickTockPipeline:
             
             logger.info(f"在源目录中找到 {len(image_files)} 个图像文件")
             
-            # 使用TickTockAlign进行对齐
-            aligner = TickTockAlign(
+            # 使用MainAlign进行对齐（支持superpoint、enhanced、auto方法）
+            aligner = MainAlign(
                 input_dir=str(source_dir),
                 output_dir=str(self.align_dir),
-                reference_index=0
+                reference_index=0,
+                method=self.align_method  # 在初始化时指定对齐方法
             )
-            aligner.process_images()
+            aligner.process_images()  # 执行对齐处理
             
             logger.info("✅ 步骤2完成: 图像对齐")
         except Exception as e:
@@ -234,8 +243,8 @@ class TickTockPipeline:
             logger.info(f"延时摄影使用源目录: {source_dir}")
             
             # 创建自定义的文件列表生成函数
-            def create_custom_file_list(input_dir, output_file):
-                """为指定目录创建文件列表"""
+            def create_custom_file_list_with_resolution(input_dir, output_file):
+                """为指定目录创建文件列表并获取原始分辨率"""
                 input_path = Path(input_dir)
                 image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
                 
@@ -249,41 +258,75 @@ class TickTockPipeline:
                 image_files = list(set(image_files))
                 
                 # 按完整路径排序，确保时间顺序正确
-                # 首先按文件夹名（年月）排序，然后按文件名排序
                 image_files = sorted(image_files, key=lambda x: (str(x.parent), x.name))
                 
                 if not image_files:
                     raise ValueError(f"在目录 {input_dir} 中没有找到图像文件")
                 
+                # 获取第一张图片的分辨率作为原始分辨率
+                try:
+                    with Image.open(image_files[0]) as img:
+                        original_width, original_height = img.size
+                    logger.info(f"📷 原始图片分辨率: {original_width}x{original_height}")
+                except Exception as e:
+                    logger.warning(f"无法获取图片分辨率: {e}，使用默认设置")
+                    original_width, original_height = 1920, 1080
+                
                 # 写入文件列表
                 with open(output_file, 'w', encoding='utf-8') as f:
                     for img_file in image_files:
-                        # 使用绝对路径，转换为POSIX格式
                         abs_path = img_file.resolve().as_posix()
                         f.write(f"file '{abs_path}'\n")
                 
                 logger.info(f"创建文件列表: {len(image_files)} 个图像文件")
-                return len(image_files)
+                return len(image_files), (original_width, original_height)
             
-            # 生成文件列表
+            # 生成文件列表并获取原始分辨率
             file_list_path = self.timelapse_dir / "file_list.txt"
-            image_count = create_custom_file_list(str(source_dir), str(file_list_path))
+            image_count, original_resolution = create_custom_file_list_with_resolution(str(source_dir), str(file_list_path))
             
-            # 生成多种质量的视频
+            original_width, original_height = original_resolution
+            
+            # 计算三个质量等级的分辨率
+            # 高质量: 原始分辨率
+            hq_resolution = f"{original_width}x{original_height}"
+            
+            # 标准质量: 75%原始分辨率
+            std_width = int(original_width * 0.75)
+            std_height = int(original_height * 0.75)
+            std_width = std_width - (std_width % 2)  # 确保是偶数
+            std_height = std_height - (std_height % 2)
+            std_resolution = f"{std_width}x{std_height}"
+            
+            # 预览质量: 50%原始分辨率
+            prev_width = int(original_width * 0.5)
+            prev_height = int(original_height * 0.5)
+            prev_width = prev_width - (prev_width % 2)
+            prev_height = prev_height - (prev_height % 2)
+            prev_resolution = f"{prev_width}x{prev_height}"
+            
+            logger.info(f"🎬 视频质量设置:")
+            logger.info(f"   高质量: {hq_resolution} (CRF 18)")
+            logger.info(f"   标准质量: {std_resolution} (CRF 23)")
+            logger.info(f"   预览质量: {prev_resolution} (CRF 28)")
+            
+            # 生成三种质量的视频（统一使用30fps）
             video_configs = [
-                ("preview", 30, "快速预览版"),
-                ("standard", 15, "标准版"),
-                ("hq", 10, "高质量版")
+                ("preview", prev_resolution, 28, "预览版"),
+                ("standard", std_resolution, 23, "标准版"), 
+                ("hq", hq_resolution, 18, "高质量版")
             ]
             
-            for name, fps, desc in video_configs:
+            for name, resolution, quality, desc in video_configs:
                 output_video = self.timelapse_dir / f"timelapse_{name}.mp4"
-                logger.info(f"生成{desc} ({fps}fps): {output_video.name}")
+                logger.info(f"生成{desc} (30fps, {resolution}): {output_video.name}")
                 
                 create_timelapse_video(
                     str(file_list_path),
                     str(output_video),
-                    framerate=fps
+                    framerate=30,
+                    quality=quality,
+                    resolution=resolution
                 )
             
             logger.info("✅ 步骤3完成: 延时摄影")
@@ -508,6 +551,11 @@ def main():
                        choices=['resize', 'align', 'timelapse', 'mosaic', 'stats'],
                        help='要执行的步骤 (默认执行所有步骤)')
     
+    parser.add_argument('--align-method', 
+                       choices=['superpoint', 'enhanced', 'auto'],
+                       default='superpoint',
+                       help='对齐方法选择 (superpoint: 深度学习方法; enhanced: 增强传统方法; auto: 自动选择)')
+    
     parser.add_argument('--resize-only', 
                        action='store_true',
                        help='仅执行图像放缩')
@@ -545,7 +593,7 @@ def main():
     print_banner()
 
     # 创建并运行流水线
-    pipeline = TickTockPipeline(args.input_dir, args.steps)
+    pipeline = TickTockPipeline(args.input_dir, steps=args.steps, align_method=args.align_method)
     pipeline.run_pipeline()
 
 if __name__ == "__main__":
