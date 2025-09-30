@@ -32,7 +32,7 @@ class TickTockAlign:
     用于对建筑物图像序列进行对齐处理，确保所有图像都与参考图像对齐。
     """
     
-    def __init__(self, input_dir="NPU-Lib", output_dir="NPU-Lib-Align", reference_index=0):
+    def __init__(self, input_dir="Lib", output_dir="Align", reference_index=0):
         """
         初始化对齐器
         
@@ -52,10 +52,19 @@ class TickTockAlign:
         self.supported_formats = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.tiff']
         
     def get_image_files(self):
-        """获取输入目录中的所有图像文件"""
+        """获取输入目录中的所有图像文件（递归搜索子目录）"""
         image_files = []
-        for fmt in self.supported_formats:
-            image_files.extend(glob.glob(str(self.input_dir / fmt)))
+        
+        # 使用pathlib的rglob进行递归搜索
+        image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
+        for ext in image_extensions:
+            # 搜索小写扩展名
+            image_files.extend(list(self.input_dir.rglob(f"*{ext}")))
+            # 搜索大写扩展名
+            image_files.extend(list(self.input_dir.rglob(f"*{ext.upper()}")))
+        
+        # 转换为字符串路径并去重
+        image_files = list(set([str(f) for f in image_files]))
         
         # 按文件名排序
         image_files.sort()

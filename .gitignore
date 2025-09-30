@@ -1,9 +1,7 @@
 __pycache__/
 
-NPU-Everyday/
-NPU-Lib/
-NPU-Lib-Align/
-Video/
+NPU-Everyday*/
 
 *.jpg
 *.mp4
+*.log

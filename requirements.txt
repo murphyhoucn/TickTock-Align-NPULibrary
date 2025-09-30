@@ -1,12 +1,29 @@
-# Python依赖包
+# TickTock-Align-NPU Library 依赖包
+
+# 核心图像处理
 opencv-python>=4.5.0
 numpy>=1.19.0
+Pillow>=8.0.0
+
+# 数据处理和分析
+pandas>=1.3.0
+matplotlib>=3.3.0
+
+# 系统工具
+pathlib2>=2.3.0
+
+# 可选：更好的图像质量
+# opencv-contrib-python>=4.5.0  # 包含额外的OpenCV模块
 
 # 注意：延时摄影视频功能还需要安装FFmpeg
-# Windows用户可以：
-# 1. 从 https://ffmpeg.org/download.html 下载FFmpeg
-# 2. 或使用 winget install FFmpeg
-# 3. 或使用 choco install ffmpeg（需要Chocolatey）
+# Windows用户安装方法：
+# 1. 官方下载：https://ffmpeg.org/download.html
+# 2. 包管理器：winget install FFmpeg
+# 3. Chocolatey：choco install ffmpeg
 # 
 # Linux用户：sudo apt-get install ffmpeg
 # macOS用户：brew install ffmpeg
+
+# 开发和测试
+# pytest>=6.0.0
+# flake8>=3.8.0
