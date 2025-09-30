@@ -46,11 +46,13 @@ echo "2. 完整处理 (NPU-Everyday)"
 echo "3. 仅图像放缩"
 echo "4. 仅图像对齐" 
 echo "5. 仅延时摄影"
-echo "6. 自定义步骤"
+echo "6. 仅马赛克拼接"
+echo "7. 仅统计分析"
+echo "8. 自定义步骤"
 echo "0. 退出"
 echo.
 
-set /p choice="请输入选择 (0-6): "
+set /p choice="请输入选择 (0-8): "
 
 if "%choice%"=="0" goto :end
 if "%choice%"=="1" goto :quick_test
@@ -58,7 +60,9 @@ if "%choice%"=="2" goto :full_process
 if "%choice%"=="3" goto :resize_only
 if "%choice%"=="4" goto :align_only
 if "%choice%"=="5" goto :timelapse_only
-if "%choice%"=="6" goto :custom
+if "%choice%"=="6" goto :mosaic_only
+if "%choice%"=="7" goto :stats_only
+if "%choice%"=="8" goto :custom
 goto :invalid
 
 :quick_test
@@ -101,6 +105,22 @@ echo 🎬 仅执行延时摄影...
 set /p input_dir="请输入目录名 (默认: NPU-Everyday-Sample): "
 if "%input_dir%"=="" set input_dir=NPU-Everyday-Sample
 python pipeline.py %input_dir% --timelapse-only
+goto :success
+
+:mosaic_only
+echo.
+echo 🧩 仅执行马赛克拼接...
+set /p input_dir="请输入目录名 (默认: NPU-Everyday-Sample): "
+if "%input_dir%"=="" set input_dir=NPU-Everyday-Sample
+python pipeline.py %input_dir% --mosaic-only
+goto :success
+
+:stats_only
+echo.
+echo 📊 仅执行统计分析...
+set /p input_dir="请输入目录名 (默认: NPU-Everyday-Sample): "
+if "%input_dir%"=="" set input_dir=NPU-Everyday-Sample
+python pipeline.py %input_dir% --stats-only
 goto :success
 
 :custom

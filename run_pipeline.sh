@@ -54,11 +54,13 @@ echo "2. 完整处理 (NPU-Everyday)"
 echo "3. 仅图像放缩"
 echo "4. 仅图像对齐"
 echo "5. 仅延时摄影"
-echo "6. 自定义步骤"
+echo "6. 仅马赛克拼接"
+echo "7. 仅统计分析"
+echo "8. 自定义步骤"
 echo "0. 退出"
 echo
 
-read -p "请输入选择 (0-6): " choice
+read -p "请输入选择 (0-8): " choice
 
 case $choice in
     0)
@@ -112,6 +114,24 @@ case $choice in
         $PYTHON_CMD pipeline.py "$input_dir" --timelapse-only
         ;;
     6)
+        echo
+        echo "🧩 仅执行马赛克拼接..."
+        read -p "请输入目录名 (默认: NPU-Everyday-Sample): " input_dir
+        if [ -z "$input_dir" ]; then
+            input_dir="NPU-Everyday-Sample"
+        fi
+        $PYTHON_CMD pipeline.py "$input_dir" --mosaic-only
+        ;;
+    7)
+        echo
+        echo "📊 仅执行统计分析..."
+        read -p "请输入目录名 (默认: NPU-Everyday-Sample): " input_dir
+        if [ -z "$input_dir" ]; then
+            input_dir="NPU-Everyday-Sample"
+        fi
+        $PYTHON_CMD pipeline.py "$input_dir" --stats-only
+        ;;
+    8)
         echo
         echo "🔧 自定义步骤组合"
         echo "可选步骤: resize, align, timelapse, mosaic, stats"
