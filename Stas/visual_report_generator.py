@@ -13,22 +13,42 @@ import calendar
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
+import warnings
 
-# 配置matplotlib支持中文显示 - 兼容Windows和Linux
-plt.rcParams['font.sans-serif'] = [
-    'SimHei',           # Windows简体中文黑体
-    'Microsoft YaHei',  # Windows微软雅黑
-    'WenQuanYi Micro Hei',  # Linux文泉驿微米黑
-    'WenQuanYi Zen Hei',    # Linux文泉驿正黑
-    'Noto Sans CJK SC',     # Google Noto字体 - 简体中文
-    'Source Han Sans SC',   # 思源黑体 - 简体中文
-    'Droid Sans Fallback',  # Android系统字体
-    'Arial Unicode MS',     # 跨平台Unicode字体
-    'DejaVu Sans',         # Linux通用无衬线字体
-    'Liberation Sans',     # Linux开源字体
-    'sans-serif'           # 系统默认无衬线字体
-]
+# 抑制字体相关警告
+warnings.filterwarnings('ignore', message='.*missing from font.*')
+warnings.filterwarnings('ignore', category=UserWarning, module='matplotlib')
+
+if os.name == 'nt':  # Windows
+    font_priority = [
+        'SimHei',              # 黑体
+        'Microsoft YaHei',      # 微软雅黑
+        'SimSun',              # 宋体
+        'AR PL UKai CN',       # 文鼎楷体
+        'AR PL UMing CN',      # 文鼎明体
+        'sans-serif'
+    ]
+    system_name = "Windows"
+else:  # Linux - 使用实际检测到的字体
+    font_priority = [
+        'Noto Sans CJK JP',        # Google Noto字体 ✅ 已验证支持中文
+        'Noto Serif CJK JP',       # Google Noto衬线字体 ✅ 已验证支持中文
+        'AR PL UKai CN',           # 文鼎楷体 ✅ 已验证支持中文
+        'AR PL UMing CN',          # 文鼎明体 ✅ 已验证支持中文
+        'Droid Sans Fallback',     # Android字体
+        'sans-serif'
+    ]
+    system_name = "Linux"
+
+# 设置字体
+plt.rcParams['font.sans-serif'] = font_priority
 plt.rcParams['axes.unicode_minus'] = False
+
+current_font = plt.rcParams['font.sans-serif'][0]
+# 定义跨平台字体变量，用于绘图
+CHINESE_FONT = font_priority[0]  # 使用第一个可用的中文字体
+print(f"当前使用的字体: {current_font} ({system_name})")
+print(f"绘图使用字体: {CHINESE_FONT}")
 
 class NPUPhotoAnalyzer:
     """NPU照片统计分析器"""
@@ -402,7 +422,7 @@ class NPUPhotoAnalyzer:
         weekday_labels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
         for i, label in enumerate(weekday_labels):
             ax.text(-30, (6 - i) * (cell_size + cell_gap) + cell_size/2, label, 
-                    ha='right', va='center', fontsize=10, fontfamily='SimHei')
+                    ha='right', va='center', fontsize=10, fontfamily=CHINESE_FONT)
         
         # 添加月份标签
         current_month = None
@@ -415,7 +435,7 @@ class NPUPhotoAnalyzer:
                 month_label = f"{week_start.year}年{week_start.month:02d}月"
                 x_pos = week_idx * (cell_size + cell_gap)
                 ax.text(x_pos, 7 * (cell_size + cell_gap) + 5, month_label, 
-                        ha='left', va='bottom', fontsize=9, fontfamily='SimHei', rotation=45)
+                        ha='left', va='bottom', fontsize=9, fontfamily=CHINESE_FONT, rotation=45)
         
         # 设置坐标轴
         ax.set_xlim(-50, weeks_count * (cell_size + cell_gap))
@@ -438,7 +458,7 @@ class NPUPhotoAnalyzer:
         title += f"总天数: {total_days} | 拍照天数: {photo_days} | 未拍天数: {no_photo_days} | "
         title += f"总照片: {total_photos}张 | 拍照率: {photo_rate:.1f}% | 平均每日: {avg_photos:.1f}张"
         
-        plt.suptitle(title, fontsize=14, fontfamily='SimHei', y=0.95)
+        plt.suptitle(title, fontsize=14, fontfamily=CHINESE_FONT, y=0.95)
         
         # 添加图例
         legend_elements = [
@@ -578,7 +598,7 @@ def generate_npu_statistics_reports(base_directory, start_date="2023-09-01", end
 
 def main():
     """主函数 - 示例用法"""
-    base_directory = r"D:\DevProj\TickTock-NPUEveryday\NPU-Everyday"
+    base_directory = r"../NPU-Everyday"  # 请根据实际情况修改路径
     
     print("🚀 启动NPU照片统计分析...")
     
