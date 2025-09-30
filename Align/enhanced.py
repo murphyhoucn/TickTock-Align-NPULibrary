@@ -502,21 +502,21 @@ class EnhancedAlign:
         
         if not image_files:
             logger.error(f"在 {self.input_dir} 中未找到图像文件")
-            return
+            return False
         
         logger.info(f"找到 {len(image_files)} 张图像")
         
         # 读取参考图像
         if self.reference_index >= len(image_files):
             logger.error(f"参考图像索引 {self.reference_index} 超出范围")
-            return
+            return False
             
         reference_path = image_files[self.reference_index]
         reference_img = cv2.imread(reference_path)
         
         if reference_img is None:
             logger.error(f"无法读取参考图像: {reference_path}")
-            return
+            return False
         
         logger.info(f"使用参考图像: {Path(reference_path).name}")
         
@@ -675,6 +675,7 @@ class EnhancedAlign:
         self.generate_processing_report(processing_report, day_count, night_count, success_count, fallback_count, copy_count)
         
         logger.info("图像对齐处理完成！")
+        return True  # 返回成功状态
     
     def generate_processing_report(self, processing_report, day_count, night_count, success_count, fallback_count, copy_count):
         """

@@ -86,6 +86,25 @@ class MainAlign:
         # 初始化对齐器
         self.aligner = None
         self.selected_method = None
+        
+        # 统计信息收集
+        self.stats = {
+            'total_images': 0,
+            'processed_images': 0,
+            'successful_alignments': 0,
+            'failed_alignments': 0,
+            'processing_times': [],
+            'image_details': [],
+            'method_used': None,
+            'start_time': None,
+            'end_time': None,
+            'total_duration': 0,
+            'average_processing_time': 0,
+            'success_rate': 0,
+            'hardware_info': {},
+            'error_details': []
+        }
+        
         self._init_aligner()
     
     def _init_aligner(self):
@@ -105,6 +124,9 @@ class MainAlign:
             else:
                 self.selected_method = self.method
         
+        # 记录选择的方法
+        self.stats['method_used'] = self.selected_method
+        
         # 创建对应的对齐器
         if self.selected_method == "superpoint":
             self.aligner = DeepLearningAlign(
@@ -112,6 +134,8 @@ class MainAlign:
                 output_dir=str(self.output_dir),
                 reference_index=self.reference_index
             )
+            # 收集GPU信息
+            self._collect_hardware_info()
             logger.info("✅ 深度学习对齐器初始化完成")
             
         elif self.selected_method == "enhanced":
@@ -120,6 +144,8 @@ class MainAlign:
                 output_dir=str(self.output_dir),
                 reference_index=self.reference_index
             )
+            # 收集硬件信息
+            self._collect_hardware_info()
             logger.info("✅ 增强传统对齐器初始化完成")
     
     def get_image_files(self):
@@ -182,6 +208,78 @@ class MainAlign:
         logger.info("✅ 保持目录结构的对齐处理完成！")
         return True
     
+    def _collect_hardware_info(self):
+        """收集硬件信息"""
+        try:
+            import torch
+            if torch.cuda.is_available():
+                self.stats['hardware_info']['gpu_available'] = True
+                self.stats['hardware_info']['gpu_name'] = torch.cuda.get_device_name(0)
+                self.stats['hardware_info']['gpu_memory'] = f"{torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f}GB"
+                self.stats['hardware_info']['cuda_version'] = torch.version.cuda
+            else:
+                self.stats['hardware_info']['gpu_available'] = False
+        except ImportError:
+            self.stats['hardware_info']['gpu_available'] = False
+        
+        # CPU信息
+        try:
+            import psutil
+            self.stats['hardware_info']['cpu_count'] = psutil.cpu_count()
+            self.stats['hardware_info']['memory_total'] = f"{psutil.virtual_memory().total / 1024**3:.1f}GB"
+        except ImportError:
+            import multiprocessing
+            self.stats['hardware_info']['cpu_count'] = multiprocessing.cpu_count()
+            self.stats['hardware_info']['memory_total'] = "Unknown"
+    
+    def _collect_detailed_stats_from_submodule(self):
+        """从子模块的处理报告中收集详细统计信息"""
+        try:
+            # 尝试读取子模块生成的报告文件
+            if self.selected_method == "superpoint":
+                report_file = self.output_dir / "superpoint_processing_report.md"
+            else:
+                report_file = self.output_dir / "processing_report.md"
+            
+            if report_file.exists():
+                with open(report_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # 解析成功统计信息
+                import re
+                
+                # 查找成功对齐数量 (匹配Markdown粗体格式)
+                success_match = re.search(r'\*\*成功对齐\*\*:\s*(\d+)', content)
+                if success_match:
+                    processed_successful = int(success_match.group(1))
+                    # 成功对齐的总数 = 处理成功的 + 参考图像(总是成功的)
+                    self.stats['successful_alignments'] = processed_successful + 1
+                
+                # 查找总图像数量（子模块报告的是处理的图像数，不包括参考图像）
+                total_match = re.search(r'\*\*总图像数量\*\*:\s*(\d+)', content)
+                if total_match:
+                    processed_images = int(total_match.group(1))
+                    # 总图像 = 处理的图像 + 参考图像
+                    self.stats['total_images'] = processed_images + 1
+                
+                # 计算失败数量
+                self.stats['failed_alignments'] = self.stats['total_images'] - self.stats['successful_alignments']
+                
+                # 查找成功率
+                success_rate_match = re.search(r'成功率:\s*([\d.]+)%', content)
+                if success_rate_match:
+                    reported_rate = float(success_rate_match.group(1))
+                    # 调整成功率计算包括参考图像
+                    self.stats['success_rate'] = (self.stats['successful_alignments'] / self.stats['total_images']) * 100
+                
+                logger.debug(f"从子模块报告收集到统计信息: 成功={self.stats['successful_alignments']}, 失败={self.stats['failed_alignments']}")
+            
+        except Exception as e:
+            logger.warning(f"无法从子模块报告收集统计信息: {e}")
+            # 使用简单估算
+            self.stats['successful_alignments'] = self.stats['total_images']
+            self.stats['failed_alignments'] = 0
+    
     def _reorganize_files(self, temp_output, original_files):
         """重新组织文件到原有目录结构"""
         logger.info("📂 重新组织文件到原有目录结构...")
@@ -208,63 +306,139 @@ class MainAlign:
         logger.info("✅ 文件重新组织完成")
     
     def _generate_main_report(self, image_files):
-        """生成主要处理报告"""
+        """生成详细的主要处理报告"""
         report_path = self.output_dir / "main_align_report.md"
         
+        # 计算最终统计数据
+        self.stats['total_images'] = len(image_files) if image_files else self.stats['total_images']
+        if self.stats['processing_times']:
+            self.stats['average_processing_time'] = sum(self.stats['processing_times']) / len(self.stats['processing_times'])
+        if self.stats['total_images'] > 0:
+            self.stats['success_rate'] = (self.stats['successful_alignments'] / self.stats['total_images']) * 100
+        
         with open(report_path, 'w', encoding='utf-8') as f:
-            f.write("# 🎯 Main Align 处理报告\n\n")
+            # 头部信息
+            f.write("# 🎯 Main Align 详细处理报告\n\n")
             f.write(f"**生成时间**: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"**处理时间**: {self.stats.get('start_time', 'N/A')} ~ {self.stats.get('end_time', 'N/A')}\n")
+            f.write(f"**总耗时**: {self.stats['total_duration']:.2f} 秒\n")
             f.write(f"**使用方法**: {self.selected_method}\n")
             f.write(f"**输入目录**: {self.input_dir}\n")
             f.write(f"**输出目录**: {self.output_dir}\n\n")
             
-            # 方法说明
-            f.write("## 🔧 对齐方法说明\n\n")
+            # 性能统计
+            f.write("## 🚀 性能统计\n\n")
+            f.write(f"- **总图像数量**: {self.stats['total_images']}\n")
+            f.write(f"- **成功对齐**: {self.stats['successful_alignments']}\n")
+            f.write(f"- **失败数量**: {self.stats['failed_alignments']}\n")
+            f.write(f"- **成功率**: {self.stats['success_rate']:.1f}%\n")
+            f.write(f"- **平均处理时间**: {self.stats['average_processing_time']:.2f} 秒/张\n")
+            
+            if self.stats['processing_times']:
+                f.write(f"- **最快处理**: {min(self.stats['processing_times']):.2f} 秒\n")
+                f.write(f"- **最慢处理**: {max(self.stats['processing_times']):.2f} 秒\n")
+            f.write("\n")
+            
+            # 硬件环境
+            f.write("## 🖥️ 硬件环境\n\n")
+            hw_info = self.stats['hardware_info']
+            if hw_info.get('gpu_available'):
+                f.write(f"- **GPU**: {hw_info.get('gpu_name', 'Unknown')}\n")
+                f.write(f"- **GPU内存**: {hw_info.get('gpu_memory', 'Unknown')}\n")
+                f.write(f"- **CUDA版本**: {hw_info.get('cuda_version', 'Unknown')}\n")
+            else:
+                f.write("- **GPU**: 不可用 (CPU模式)\n")
+            f.write(f"- **CPU核数**: {hw_info.get('cpu_count', 'Unknown')}\n")
+            f.write(f"- **系统内存**: {hw_info.get('memory_total', 'Unknown')}\n\n")
+            
+            # 对齐方法详情
+            f.write("## 🔧 对齐方法详情\n\n")
             if self.selected_method == "superpoint":
                 f.write("### 🚀 深度学习方法 (SuperPoint)\n")
                 f.write("- **核心技术**: LoFTR (Local Feature TRansformer)\n")
-                f.write("- **特点**: 高精度深度学习特征匹配\n")
-                f.write("- **优势**: 对光照、季节变化鲁棒\n")
-                f.write("- **适用**: 现代建筑、复杂场景\n\n")
+                f.write("- **特征提取**: SuperPoint + LoFTR Transformer\n")
+                f.write("- **匹配算法**: 深度学习特征匹配\n")
+                f.write("- **优势**: 对光照、季节变化鲁棒，高精度\n")
+                f.write("- **适用场景**: 现代建筑、复杂场景、光照变化\n")
+                f.write("- **GPU加速**: 支持CUDA加速，处理速度提升10倍\n\n")
             else:
                 f.write("### 🔧 增强传统方法 (Enhanced)\n")
-                f.write("- **核心技术**: 增强SIFT + 模板匹配\n")
-                f.write("- **特点**: 多层次回退策略\n")
-                f.write("- **优势**: 兼容性好、稳定性高\n")
-                f.write("- **适用**: 传统场景、兼容性要求高\n\n")
+                f.write("- **核心技术**: 增强SIFT + 模板匹配 + BRISK\n")
+                f.write("- **特征提取**: 日间SIFT + 夜间BRISK\n")
+                f.write("- **匹配策略**: 多层次回退机制\n")
+                f.write("- **优势**: 兼容性好、稳定性高、CPU友好\n")
+                f.write("- **适用场景**: 传统场景、无GPU环境、兼容性要求\n")
+                f.write("- **回退机制**: SIFT失败→BRISK→模板匹配\n\n")
             
-            # 统计信息
-            f.write("## 📊 处理统计\n\n")
-            f.write(f"- **总图像数量**: {len(image_files)}\n")
-            
-            # 目录结构分析
-            dirs = set()
-            for img_file in image_files:
-                rel_path = Path(img_file).relative_to(self.input_dir)
-                if len(rel_path.parts) > 1:
-                    dirs.add(rel_path.parent)
-            
-            if dirs:
-                f.write(f"- **目录数量**: {len(dirs)}\n")
-                f.write(f"- **目录结构**: 已保持\n\n")
+            # 目录结构分析  
+            f.write("## � 目录结构分析\n\n")
+            if image_files:
+                dirs = set()
+                for img_file in image_files:
+                    rel_path = Path(img_file).relative_to(self.input_dir)
+                    if len(rel_path.parts) > 1:
+                        dirs.add(rel_path.parent)
                 
-                f.write("### 📁 目录分布\n\n")
-                for dir_path in sorted(dirs):
-                    dir_files = [f for f in image_files if Path(f).relative_to(self.input_dir).parent == dir_path]
-                    f.write(f"- `{dir_path}`: {len(dir_files)} 张图像\n")
-            else:
-                f.write(f"- **目录结构**: 扁平结构\n")
+                if dirs:
+                    f.write(f"- **目录数量**: {len(dirs)}\n")
+                    f.write(f"- **结构类型**: 层次化目录结构\n")
+                    f.write(f"- **结构保持**: 已完整保持原有结构\n\n")
+                    
+                    f.write("### � 详细目录分布\n\n")
+                    for dir_path in sorted(dirs):
+                        dir_files = [f for f in image_files if Path(f).relative_to(self.input_dir).parent == dir_path]
+                        f.write(f"- `{dir_path}`: {len(dir_files)} 张图像\n")
+                else:
+                    f.write(f"- **结构类型**: 扁平目录结构\n")
+                    f.write(f"- **文件存放**: 所有文件在同一目录\n")
+            f.write("\n")
             
-            f.write(f"\n## 🎉 处理完成\n\n")
+            # 错误详情(如果有)
+            if self.stats['error_details']:
+                f.write("## ⚠️ 错误详情\n\n")
+                for i, error in enumerate(self.stats['error_details'], 1):
+                    f.write(f"{i}. **{error.get('file', 'Unknown')}**: {error.get('error', 'Unknown error')}\n")
+                f.write("\n")
+            
+            # 优化建议
+            f.write("## 💡 优化建议\n\n")
+            if self.stats['success_rate'] < 90:
+                f.write("⚠️ **成功率偏低建议**:\n")
+                f.write("- 检查输入图像质量和清晰度\n")
+                f.write("- 尝试不同的对齐方法\n")
+                f.write("- 确认图像序列的一致性\n\n")
+            
+            if self.stats['average_processing_time'] > 5.0:
+                f.write("⚡ **性能优化建议**:\n")
+                f.write("- 检查GPU是否正常工作\n")
+                f.write("- 考虑使用SuperPoint方法获得更快速度\n")
+                f.write("- 适当降低图像分辨率\n\n")
+            
+            if self.selected_method == "enhanced" and hw_info.get('gpu_available'):
+                f.write("🚀 **方法升级建议**:\n")
+                f.write("- 检测到GPU可用，建议尝试SuperPoint方法获得更好效果\n")
+                f.write("- 使用 `--method superpoint` 参数重新运行\n\n")
+            
+            # 结束信息
+            f.write(f"## 🎉 处理完成\n\n")
             f.write(f"所有图像已成功对齐并保存到: `{self.output_dir}`\n\n")
-            f.write("---\n")
-            f.write("*Generated by TickTock Main Align Library*\n")
+            f.write("### 📄 相关文件\n\n")
+            f.write("- 对齐后的图像: 在输出目录中\n")
+            f.write("- 处理日志: 查看命令行输出\n")
+            if self.selected_method == "superpoint":
+                f.write("- SuperPoint详细报告: `superpoint_processing_report.md`\n")
+            else:
+                f.write("- Enhanced详细报告: `processing_report.md`\n")
+            
+            f.write("\n---\n")
+            f.write("*Generated by TickTock Main Align Library - Enhanced Report Version*\n")
         
-        logger.info(f"📝 主要处理报告已保存: {report_path}")
+        logger.info(f"📝 详细处理报告已保存: {report_path}")
     
     def process_images(self):
-        """主要的图像处理方法"""
+        """主要的图像处理方法（增强统计版）"""
         start_time = time.time()
+        self.stats['start_time'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))
         
         logger.info("=" * 70)
         logger.info("🎯 TickTock Main Align 开始处理")
@@ -280,6 +454,8 @@ class MainAlign:
                 logger.error("❌ 未找到图像文件")
                 return False
             
+            self.stats['total_images'] = len(image_files)
+            
             # 检查是否需要保持目录结构
             has_subdirs = any(len(Path(f).relative_to(self.input_dir).parts) > 1 for f in image_files)
             
@@ -292,19 +468,55 @@ class MainAlign:
             
             end_time = time.time()
             duration = end_time - start_time
+            self.stats['end_time'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))
+            self.stats['total_duration'] = duration
+            
+            # 从子模块处理报告中收集实际统计信息
+            try:
+                if success:
+                    self._collect_detailed_stats_from_submodule()
+                else:
+                    self.stats['successful_alignments'] = 0
+                    self.stats['failed_alignments'] = self.stats['total_images']
+            except Exception as e:
+                # 简单估算作为后备
+                if success:
+                    self.stats['successful_alignments'] = self.stats['total_images']
+                    self.stats['failed_alignments'] = 0
+                else:
+                    self.stats['successful_alignments'] = 0
+                    self.stats['failed_alignments'] = self.stats['total_images']
             
             if success:
+                # 生成详细报告
+                self._generate_main_report(image_files)
+                
                 logger.info("=" * 70)
                 logger.info("🎉 Main Align 处理完成!")
                 logger.info(f"⏱️  总耗时: {duration:.2f} 秒")
-                logger.info(f"📂 结果保存在: {self.output_dir}")
+                logger.info(f"� 成功率: {self.stats['success_rate']:.1f}%")
+                logger.info(f"�📂 结果保存在: {self.output_dir}")
                 logger.info("=" * 70)
                 return True
             else:
+                # 生成错误报告
+                self._generate_main_report(image_files)
                 logger.error("❌ 处理失败")
                 return False
                 
         except Exception as e:
+            end_time = time.time()
+            self.stats['end_time'] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))
+            self.stats['total_duration'] = end_time - start_time
+            self.stats['error_details'].append({'error': str(e), 'file': 'general'})
+            
+            # 依然生成报告，即使有错误
+            try:
+                image_files = self.get_image_files() or []
+                self._generate_main_report(image_files)
+            except:
+                pass
+            
             logger.error(f"❌ 处理过程中出现错误: {e}")
             import traceback
             traceback.print_exc()

@@ -482,21 +482,21 @@ class DeepLearningAlign:
         
         if not image_files:
             logger.error(f"在 {self.input_dir} 中未找到图像文件")
-            return
+            return False
         
         logger.info(f"找到 {len(image_files)} 张图像")
         
         # 读取参考图像
         if self.reference_index >= len(image_files):
             logger.error(f"参考图像索引 {self.reference_index} 超出范围")
-            return
+            return False
         
         reference_path = image_files[self.reference_index]
         reference_img = cv2.imread(reference_path)
         
         if reference_img is None:
             logger.error(f"无法读取参考图像: {reference_path}")
-            return
+            return False
         
         logger.info(f"使用参考图像: {Path(reference_path).name}")
         
@@ -510,12 +510,12 @@ class DeepLearningAlign:
         if hasattr(self, 'use_loftr') and self.use_loftr:
             if ref_desc is None:
                 logger.error("参考图像tensor提取失败")
-                return
+                return False
             logger.info("参考图像已准备用于LoFTR匹配")
         else:
             if ref_desc is None:
                 logger.error("参考图像特征提取失败")
-                return
+                return False
             logger.info(f"参考图像提取到 {len(ref_kp)} 个特征点")
         
         # 保存参考图像
@@ -627,6 +627,7 @@ class DeepLearningAlign:
         self.generate_report(processing_report, success_count, total_processed)
         
         logger.info("SuperPoint图像对齐处理完成！")
+        return True  # 返回成功状态
     
     def generate_report(self, processing_report, success_count, total_processed):
         """生成处理报告"""

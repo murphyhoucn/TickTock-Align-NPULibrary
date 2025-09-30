@@ -194,9 +194,9 @@ TickTock-NPUEveryday/
         ├── Rescaled/               # 🔄 统一放缩后的图像
         ├── Aligned/                # 🎯 SIFT对齐后的图像
         ├── Timelapse/              # 🎬 延时摄影视频
-        │   ├── timelapse_preview.mp4   (30fps)
-        │   ├── timelapse_standard.mp4  (15fps)
-        │   └── timelapse_hq.mp4        (10fps)
+        │   ├── timelapse_preview.mp4   (2048×1536 (50% 原分辨率) + CRF 28 → 30帧 0.2MB)
+        │   ├── timelapse_standard.mp4  (3072×2304 (75% 原分辨率) + CRF 23 → 30帧 0.6MB)
+        │   └── timelapse_hq.mp4        (4096×3072 (100% 原分辨率) + CRF 18 → 30帧 1.7MB)
         ├── Mosaic/                 # 🧩 马赛克拼图
         │   ├── mosaic_grid.jpg         # 网格布局
         │   ├── mosaic_timeline_*.jpg   # 时间线布局
@@ -245,23 +245,10 @@ NPU-Everyday的图片使用了两个不同的手机拍摄：
 
 ## 🛠️ 系统要求
 
-### 必需软件
-- **Python 3.10+** (推荐3.10-3.12)
-- **OpenCV 4.0+** (图像处理)
-- **NumPy 2.0+** (数值计算)
-- **Pillow** (图像处理)
-- **FFmpeg** (延时摄影功能)
 
-### 支持平台
-- ✅ **Windows 10/11** (主要测试平台)
-- ✅ **Linux (Ubuntu 18.04+)**
-- ✅ **macOS 10.14+**
-
-### 推荐硬件配置
-- **CPU**: 多核处理器，推荐8核心以上
-- **内存**: 16GB+ (处理大量高分辨率图像)
-- **存储**: SSD硬盘提升I/O性能
-- **显卡**: 可选，OpenCV支持CUDA加速
+### 测试平台
+- ✅ **Linux (Ubuntu 20.04.6 LTS x86_64 )**
+- ✅ **Windows 11**
 
 ---
 
