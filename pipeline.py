@@ -496,7 +496,15 @@ def main():
     parser.add_argument('--timelapse-only', 
                        action='store_true',
                        help='仅执行延时摄影')
-    
+        
+    parser.add_argument('--mosaic-only', 
+                       action='store_true',
+                       help='仅执行马赛克拼图')
+
+    parser.add_argument('--stats-only', 
+                       action='store_true',
+                       help='仅执行统计信息')
+
     args = parser.parse_args()
     
     # 处理快捷选项
@@ -506,9 +514,15 @@ def main():
         args.steps = ['align']
     elif args.timelapse_only:
         args.steps = ['timelapse']
-    
+    elif args.mosaic_only:
+        args.steps = ['mosaic']
+    elif args.stats_only:
+        args.steps = ['stats']
+
     print_banner()
-    
+    print(f"输入目录: {args.input_dir}")
+    print(f"执行步骤: {', '.join(args.steps)}")
+
     # 创建并运行流水线
     pipeline = NPUPipeline(args.input_dir, args.steps)
     pipeline.run_pipeline()

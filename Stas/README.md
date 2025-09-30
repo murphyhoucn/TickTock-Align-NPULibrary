@@ -53,32 +53,76 @@ python pipeline.py NPU-Everyday-Sample --stats-only
 python pipeline.py NPU-Everyday-Sample --steps resize align timelapse mosaic stats
 ```
 
-## 📊 五大统计工具功能详解
+## 📊 刘大统计工具功能详解
 
-#### `statistics_m.py` - 单目录统计工具
+### `statistics.py_m` - 单目录统计工具
 **功能**：统计单个目录的拍照情况
 - 🔧 支持用户输入任意目录路径
 - 🗓️ 自动从文件夹名提取年月信息（如2023.10）
 - 🔄 交互式循环模式，输入'q'退出
 - 📊 快速查看单个月份的拍照统计
 
-#### `statistics_y.py` - 全量统计工具
-**功能**：对整个项目期间的所有照片进行全面统计
+### `statistics_y.py` - 全量统计工具
+**功能**：对2023.09.01-2026.04.30期间的所有照片进行全面统计
 - 📅 支持多种显示模式（年度/月度/每日）
 - 🔍 自动验证日期处理（闰年、月份天数）
 - 📊 详细的统计汇总信息
+- 💻 纯文本输出，适合命令行查看
+
+### `visual_commit.py` - 命令行版提交图
+**功能**：在命令行中显示GitHub风格统计图
+- 💻 适合终端环境使用
+- 📊 多种显示模式选择
+- 🎨 类似GitHub的绿色方块提交图
+- ⚡ 快速预览拍照活跃度
+
+### `visual_commit_markdown.py` - **主推工具** ⭐
+**功能**：生成GitHub风格的commit图表，输出为Markdown格式报告
+- 📊 GitHub风格的拍照提交图（垂直7行布局）
+- 📈 年度和月度统计表格
+- 📄 完整的Markdown报告
+- 🎨 可视化拍照模式和趋势
+- 📝 适合文档分享和存档
+
+**输出文件**：`NPU_Photo_Statistics_Report.md`
+
+### `visual_commit_png.py` - **主推工具** ⭐
+**功能**：生成GitHub风格的commit图表，输出为PNG图片格式
+- 🖼️ 高质量PNG图片输出（300 DPI）
+- 📊 真实GitHub风格的绿色方块可视化
+- 🎨 支持中文字体显示和图例
+- 📏 横向展开显示，不受文本宽度限制
+- 🔧 可自定义颜色、大小和样式
+- 💾 适合插入PPT、报告或网页
+
+**输出文件**：`NPU_Photo_Commit_Chart.png`
+![NPU_Photo_Commit_Chart](NPU_Photo_Commit_Chart.png)
+
+### `visual_report_generator.py` - **主推工具** ⭐
+**功能**：生成GitHub风格的commit图表，输出为PNG图片格式和Markdown格式报告
+
 
 ### 3. 命令行直接使用
 ```bash
 # 生成年度统计
-python Stas\statistics_y.py NPU-Everyday
+python Stas\statistics_y.py
 
 # 生成月度统计
-python Stas\statistics_m.py NPU-Everyday 2024
+python Stas\statistics_m.py
 
 # 生成可视化图表
-python Stas\visual_commit.py NPU-Everyday
+python Stas\visual_commit.py
+
+# 生成可视化图表，输出为markdown
+python Stas\visual_commit_markdown.py
+
+# 生成可视化图表，输出为png
+python Stas\visual_commit_png.py
+
+# 生成可视化图表，输出为markdown，png
+python Stas\visual_report_generator.py
 ```
+
 
 ## 📊 处理过程详解
 
@@ -120,21 +164,6 @@ python Stas\visual_commit.py NPU-Everyday
 年度对比:
 - 2023年: 25张照片, 12个拍摄日, 日均2.1张
 - 2024年: 10张照片, 8个拍摄日, 日均1.3张
-```
-
-## 📝 输出结果
-
-### 文件结构
-```
-Statistics/
-├── NPU_Photo_Commit_Chart.png       # GitHub风格热力图
-├── NPU_Photo_Statistics_Report.md   # 详细统计报告
-├── monthly_bar_chart.png            # 月度柱状图
-├── trend_analysis.png               # 趋势分析图
-├── weekday_distribution.png         # 星期分布图
-├── yearly_comparison.png            # 年度对比图
-├── raw_data.csv                     # 原始数据导出
-└── processed_stats.json             # 处理后统计数据
 ```
 
 ### 🛠️ 辅助工具
@@ -204,5 +233,3 @@ NPU-Everyday/
 
 **模块版本**: v2.0.0  
 **最后更新**: 2025-09-30  
-**维护者**: TickTock-Align-NPU Library Team
-

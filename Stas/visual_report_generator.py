@@ -578,7 +578,7 @@ def generate_npu_statistics_reports(base_directory, start_date="2023-09-01", end
 
 def main():
     """主函数 - 示例用法"""
-    base_directory = r"D:\DevProj\TickTock-Align-NPULibrary\NPU-Everyday"
+    base_directory = r"D:\DevProj\TickTock-NPUEveryday\NPU-Everyday"
     
     print("🚀 启动NPU照片统计分析...")
     

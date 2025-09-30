@@ -244,7 +244,7 @@ def generate_github_style_commit_png(photo_stats, start_date_str="2023-09-01", e
     return output_path
 
 def main():
-    base_directory = r"D:\\DevProj\\TickTock-Align-NPULibrary\\NPU-Everyday"
+    base_directory = r"D:\DevProj\TickTock-NPUEveryday\NPU-Everyday"
     
     print("=" * 50)
     print("NPU 每日拍照统计分析工具 - PNG可视化版本")

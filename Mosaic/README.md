@@ -189,4 +189,3 @@ def calculate_grid_layout(self, num_images, max_width=4000, max_height=3000):
 
 **模块版本**: v2.0.0  
 **最后更新**: 2025-09-30  
-**维护者**: TickTock-Align-NPU Library Team

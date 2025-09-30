@@ -338,7 +338,7 @@ def main():
     # 获取 NPU-Everyday 目录路径
     # base_directory = input("\n请输入 NPU-Everyday 目录路径: ").strip()
 
-    base_directory = r"D:\\DevProj\\TickTock-Align-NPULibrary\\NPU-Everyday"
+    base_directory = r"D:\DevProj\TickTock-NPUEveryday\NPU-Everyday"
 
     # 去除可能的引号
     if base_directory.startswith('"') and base_directory.endswith('"'):
