@@ -8,7 +8,7 @@ echo    ██║   ██║██║     ██╔═██╗    ██║   
 echo    ██║   ██║╚██████╗██║  ██╗   ██║   ╚██████╔╝╚██████╗██║  ██╗
 echo    ╚═╝   ╚═╝ ╚═════╝╚═╝  ╚═╝   ╚═╝    ╚═════╝  ╚═════╝╚═╝  ╚═╝
 echo.
-echo TickTock-Align-NPU Library 一键启动脚本
+echo TickTock-NPU Everyday Library 一键启动脚本
 echo NPU建筑物图像处理 - 完整工作流程
 echo ============================================================
 echo.
@@ -40,14 +40,14 @@ if errorlevel 1 (
 )
 
 echo.
-echo 请选择处理模式:
-echo 1. 快速测试 (NPU-Everyday-Sample) - 推荐
-echo 2. 完整处理 (NPU-Everyday)
-echo 3. 仅图像放缩
-echo 4. 仅图像对齐  
-echo 5. 仅延时摄影
-echo 6. 自定义步骤
-echo 0. 退出
+echo "请选择处理模式:"
+echo "1. 快速测试 (NPU-Everyday-Sample) - 快速测试"
+echo "2. 完整处理 (NPU-Everyday)"
+echo "3. 仅图像放缩"
+echo "4. 仅图像对齐" 
+echo "5. 仅延时摄影"
+echo "6. 自定义步骤"
+echo "0. 退出"
 echo.
 
 set /p choice="请输入选择 (0-6): "
@@ -131,5 +131,5 @@ goto :end
 
 :end
 echo.
-echo 感谢使用 TickTock-Align-NPU Library！
+echo "感谢使用 TickTock-NPU Everyday Library！"
 pause

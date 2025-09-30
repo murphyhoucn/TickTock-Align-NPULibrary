@@ -312,11 +312,6 @@ search_params = dict(
 - [延时摄影模块](../Timelapse/README.md)
 - [OpenCV SIFT文档](https://docs.opencv.org/4.x/da/df5/tutorial_py_sift_intro.html)
 
-## 🔬 技术参考
-
-### 学术文献
-- Lowe, D.G. "Distinctive Image Features from Scale-Invariant Keypoints" (2004)
-- Fischler, M.A. & Bolles, R.C. "Random Sample Consensus" (1981)
 
 ### 实现参考
 - OpenCV SIFT Implementation
@@ -327,4 +322,3 @@ search_params = dict(
 
 **模块版本**: v2.0.0  
 **最后更新**: 2025-09-30  
-**维护者**: TickTock-Align-NPU Library Team

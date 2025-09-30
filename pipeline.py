@@ -25,7 +25,7 @@ from datetime import datetime
 from Resize.image_resizer import process_directory as resize_images
 from Align.align_lib import TickTockAlign
 from Timelapse.create_timelapse import create_file_list, create_timelapse_video
-from Stas.statistics_report_generator import generate_npu_statistics_reports
+from Stas.visual_report_generator import generate_npu_statistics_reports
 
 
 # 配置日志

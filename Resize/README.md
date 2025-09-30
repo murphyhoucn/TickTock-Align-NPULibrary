@@ -167,31 +167,6 @@ def resize_image(input_path, output_path, target_size=(4096, 3072)):
     └── IMG_20240902_190324.jpg # 4096×3072
 ```
 
-## ❗ 错误处理
-
-### 常见错误及解决方案
-
-1. **文件读取失败**
-   ```
-   ❌ 处理失败: cannot identify image file
-   ```
-   - 原因: 图像文件损坏或格式不支持
-   - 解决: 检查文件完整性，确认格式支持
-
-2. **磁盘空间不足**
-   ```
-   ❌ 处理失败: [Errno 28] No space left on device
-   ```
-   - 原因: 输出目录磁盘空间不足
-   - 解决: 清理磁盘空间或更换输出目录
-
-3. **权限不足**
-   ```
-   ❌ 处理失败: [Errno 13] Permission denied
-   ```
-   - 原因: 没有写入权限
-   - 解决: 检查目录权限，以管理员身份运行
-
 ## 🔧 自定义配置
 
 ### 修改默认参数
@@ -214,11 +189,9 @@ DEVICE_MAPPING = {
 ## 📚 相关文档
 
 - [主项目文档](../README.md)
-- [完整流水线说明](../USAGE.md)
 - [环境配置指南](../requirements.txt)
 
 ---
 
 **模块版本**: v2.0.0  
 **最后更新**: 2025-09-30  
-**维护者**: TickTock-Align-NPU Library Team

@@ -20,7 +20,10 @@
 ### 方式1：一键启动脚本（推荐新用户）
 ```bash
 # Windows用户
-run_pipeline.bat
+./run_pipeline.bat
+
+# Linux用户
+./run_pipeline.sh
 
 # 交互式菜单选择：
 # 1. 快速测试 (NPU-Everyday-Sample) - 30张图像，约4分钟
@@ -136,7 +139,7 @@ python test_environment.py
 ## 📁 项目结构
 
 ```
-TickTock-Align-NPULibrary/
+TickTock-NPUEveryday/
 ├── 📊 数据集
 │   ├── NPU-Everyday/               # 完整数据集：所有月份的图像
 │   │   ├── 2023.09/ ... 2025.09/
@@ -166,15 +169,13 @@ TickTock-Align-NPULibrary/
 │   │   ├── mosaic_pic.py           # 马赛克拼图算法
 │   │   └── README.md               # 模块说明文档
 │   └── Stas/                       # 统计分析模块
-│       ├── visual_commit_markdown.py  # Markdown报告生成
-│       ├── visual_commit_png.py       # PNG图表生成
+│       ├── visual_report_generator.py  # Markdown报告生成， PNG图表生成
 │       ├── statistics_*.py            # 其他统计工具
+│       ├── visual_commit_*.py         # 其他统计工具
 │       └── README.md                  # 模块说明文档
 │
 ├── 📋 配置文件
 │   ├── requirements.txt            # Python依赖包列表
-│   ├── USAGE.md                   # 详细使用指南
-│   └── PROJECT_SUMMARY.md          # 项目重构总结
 │
 └── 📤 输出示例 (自动生成)
     └── {输入目录}_Output/
@@ -254,10 +255,8 @@ NPU-Everyday的图片使用了两个不同的手机拍摄：
 
 ## 📖 详细文档
 
-- 📋 [完整使用指南 (USAGE.md)](USAGE.md) - 详细的使用说明和API文档
 - 🔧 [环境配置说明 (requirements.txt)](requirements.txt) - 依赖包安装说明
 - 🧪 [环境测试工具 (test_environment.py)](test_environment.py) - 环境和功能测试
-- 📊 [项目重构总结 (PROJECT_SUMMARY.md)](PROJECT_SUMMARY.md) - 完整重构过程
 
 ### 模块详细文档
 - [🔄 图像放缩模块 (Resize/README.md)](Resize/README.md)
@@ -286,8 +285,8 @@ NPU-Everyday的图片使用了两个不同的手机拍摄：
 ### 开发环境设置
 ```bash
 # 克隆项目
-git clone https://github.com/murphyhoucn/TickTock-Align-NPULibrary.git
-cd TickTock-Align-NPULibrary
+git clone https://github.com/murphyhoucn/TickTock-NPUEveryday.git
+cd TickTock-NPUEveryday
 
 # 安装开发依赖
 pip install -r requirements.txt
@@ -313,6 +312,5 @@ python test_environment.py
 
 ---
 
-**🎉 TickTock-Align-NPU Library v2.0.0**  
+**🎉 TickTock-NPUEveryday v2.0.0**  
 *最后更新: 2025-09-30*  
-*构建者: 基于计算机视觉技术的完整图像处理流水线*
