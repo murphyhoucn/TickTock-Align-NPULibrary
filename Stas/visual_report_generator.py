@@ -14,8 +14,20 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
 
-# 配置matplotlib支持中文显示
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS', 'DejaVu Sans']
+# 配置matplotlib支持中文显示 - 兼容Windows和Linux
+plt.rcParams['font.sans-serif'] = [
+    'SimHei',           # Windows简体中文黑体
+    'Microsoft YaHei',  # Windows微软雅黑
+    'WenQuanYi Micro Hei',  # Linux文泉驿微米黑
+    'WenQuanYi Zen Hei',    # Linux文泉驿正黑
+    'Noto Sans CJK SC',     # Google Noto字体 - 简体中文
+    'Source Han Sans SC',   # 思源黑体 - 简体中文
+    'Droid Sans Fallback',  # Android系统字体
+    'Arial Unicode MS',     # 跨平台Unicode字体
+    'DejaVu Sans',         # Linux通用无衬线字体
+    'Liberation Sans',     # Linux开源字体
+    'sans-serif'           # 系统默认无衬线字体
+]
 plt.rcParams['axes.unicode_minus'] = False
 
 class NPUPhotoAnalyzer:
