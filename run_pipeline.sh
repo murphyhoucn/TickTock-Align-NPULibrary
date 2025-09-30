@@ -49,8 +49,8 @@ fi
 
 echo
 echo "请选择处理模式:"
-echo "1. 快速测试 (../NPU-Everyday-Sample) - 快速测试"
-echo "2. 完整处理 (../NPU-Everyday)"
+echo "1. 快速测试 (NPU-Everyday-Sample) - 快速测试"
+echo "2. 完整处理 (NPU-Everyday)"
 echo "3. 仅图像放缩"
 echo "4. 仅图像对齐"
 echo "5. 仅延时摄影"
@@ -71,20 +71,20 @@ case $choice in
     1)
         echo
         echo "🚀 开始快速测试处理..."
-        echo "输入: ../NPU-Everyday-Sample"
+        echo "输入: NPU-Everyday-Sample"
         echo "输出: NPU-Everyday-Sample_Output"
         echo
-        $PYTHON_CMD pipeline.py ../NPU-Everyday-Sample
-        input_dir="../NPU-Everyday-Sample"
+        $PYTHON_CMD pipeline.py NPU-Everyday-Sample
+        input_dir="NPU-Everyday-Sample"
         ;;
     2)
         echo
         echo "🚀 开始完整处理..."
-        echo "输入: ../NPU-Everyday"
+        echo "输入: NPU-Everyday"
         echo "输出: NPU-Everyday_Output"
         echo
-        $PYTHON_CMD pipeline.py ../NPU-Everyday
-        input_dir="../NPU-Everyday"
+        $PYTHON_CMD pipeline.py NPU-Everyday
+        input_dir="NPU-Everyday"
         ;;
     3)
         echo

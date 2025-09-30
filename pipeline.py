@@ -10,7 +10,7 @@ TickTock-Align-NPU Library 完整流水线
 4. 马赛克拼图 (Mosaic) - 生成马赛克效果拼图
 5. 统计信息 (Statistics) - 生成拍摄统计报告
 
-输入: NPU-Everyday 或 NPU-Everyday-Sample 文件夹
+输入: NPU-Everyday 或 NPU-Every-Sample
 输出: {输入文件夹名称}_Output 文件夹，包含所有处理结果
 """
 
@@ -52,10 +52,25 @@ def print_banner():
     print("NPU建筑物图像处理 - 完整工作流程")
     print("=" * 60)
 
-class NPUPipeline:
-    """NPU图像处理完整流水线"""
+class TickTockPipeline:
+    """TickTock 完整处理流水线"""
     
-    def __init__(self, input_dir, steps=None):
+    @staticmethod
+    def get_sorted_image_files(directory, extensions=None):
+        """获取按时间顺序排序的图像文件列表"""
+        if extensions is None:
+            extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
+        
+        image_files = []
+        for ext in extensions:
+            image_files.extend(list(directory.rglob(f"*{ext}")))
+            image_files.extend(list(directory.rglob(f"*{ext.upper()}")))
+        
+        # 去重并按时间顺序排序（先按文件夹，再按文件名）
+        image_files = sorted(set(image_files), key=lambda x: (str(x.parent), x.name))
+        return image_files
+    
+    def __init__(self, input_dir, output_dir=None, steps=None):
         """
         初始化处理流水线
         
@@ -91,16 +106,19 @@ class NPUPipeline:
             raise FileNotFoundError(f"输入目录不存在: {self.input_dir}")
         
         # 检查图片数量
-        image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
-        image_files = []
-        for ext in image_extensions:
-            image_files.extend(list(self.input_dir.rglob(f"*{ext}")))
-            image_files.extend(list(self.input_dir.rglob(f"*{ext.upper()}")))
+        image_files = self.get_sorted_image_files(self.input_dir)
         
         if len(image_files) == 0:
             raise ValueError(f"输入目录中没有找到图片文件: {self.input_dir}")
         
-        logger.info(f"发现 {len(image_files)} 个图片文件")
+        logger.info(f"发现 {len(image_files)} 个图片文件（按时间顺序排列）")
+        
+        # 打印前几个文件以验证顺序
+        logger.info("文件顺序示例:")
+        for i, file in enumerate(image_files[:5]):
+            logger.info(f"  {i+1}. {file.relative_to(self.input_dir)}")
+        if len(image_files) > 5:
+            logger.info(f"  ... 还有 {len(image_files)-5} 个文件")
         return True
     
     def step_1_resize(self):
@@ -187,9 +205,10 @@ class NPUPipeline:
         # 检查对齐后的图像
         if 'align' in self.steps and self.align_dir.exists():
             align_files = list(self.align_dir.rglob("*.jpg")) + list(self.align_dir.rglob("*.jpeg")) + list(self.align_dir.rglob("*.png"))
+            align_files = sorted(set(align_files), key=lambda x: (str(x.parent), x.name))
             if align_files:
                 source_dir = self.align_dir
-                logger.info(f"使用对齐后的图像: {len(align_files)} 个文件")
+                logger.info(f"使用对齐后的图像: {len(align_files)} 个文件（按时间顺序）")
         
         # 如果对齐目录没有文件，检查放缩后的图像
         if source_dir is None and 'resize' in self.steps and self.rescale_dir.exists():
@@ -223,11 +242,15 @@ class NPUPipeline:
                 # 收集所有图像文件
                 image_files = []
                 for ext in image_extensions:
-                    image_files.extend(sorted(input_path.rglob(f"*{ext}")))
-                    image_files.extend(sorted(input_path.rglob(f"*{ext.upper()}")))
+                    image_files.extend(input_path.rglob(f"*{ext}"))
+                    image_files.extend(input_path.rglob(f"*{ext.upper()}"))
                 
-                # 按文件名排序
-                image_files = sorted(set(image_files), key=lambda x: x.name)
+                # 去重
+                image_files = list(set(image_files))
+                
+                # 按完整路径排序，确保时间顺序正确
+                # 首先按文件夹名（年月）排序，然后按文件名排序
+                image_files = sorted(image_files, key=lambda x: (str(x.parent), x.name))
                 
                 if not image_files:
                     raise ValueError(f"在目录 {input_dir} 中没有找到图像文件")
@@ -520,11 +543,9 @@ def main():
         args.steps = ['stats']
 
     print_banner()
-    print(f"输入目录: {args.input_dir}")
-    print(f"执行步骤: {', '.join(args.steps)}")
 
     # 创建并运行流水线
-    pipeline = NPUPipeline(args.input_dir, args.steps)
+    pipeline = TickTockPipeline(args.input_dir, args.steps)
     pipeline.run_pipeline()
 
 if __name__ == "__main__":

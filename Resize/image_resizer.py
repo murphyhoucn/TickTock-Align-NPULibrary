@@ -72,42 +72,62 @@ def process_directory(input_dir, output_dir, target_size=(4096, 3072)):
     print(f"🎯 目标尺寸: {target_size[0]}x{target_size[1]}")
     print("=" * 60)
     
-    # 遍历所有图片文件
+    # 收集所有图片文件并按时间顺序排序
+    image_files = []
     for file_path in input_path.rglob("*"):
         if file_path.is_file() and file_path.suffix.lower() in image_extensions:
-            total_images += 1
-            
-            # 构建输出文件路径，保持相对目录结构
-            relative_path = file_path.relative_to(input_path)
-            output_file = output_path / relative_path
-            
-            # 确保输出目录存在
-            output_file.parent.mkdir(parents=True, exist_ok=True)
-            
-            print(f"\n📸 处理第 {total_images} 个图片:")
-            print(f"   文件: {relative_path}")
-            
-            # 检查原始尺寸并分类
-            try:
-                with Image.open(file_path) as img:
-                    size = img.size
-                    if size == (3648, 2736):
-                        huawei_count += 1
-                        print(f"   设备: HUAWEI P30 Pro")
-                    elif size == (4096, 3072):
-                        vivo_count += 1
-                        print(f"   设备: vivo X100 Pro")
-                    else:
-                        other_count += 1
-                        print(f"   设备: 其他 ({size[0]}x{size[1]})")
-            except:
-                pass
-            
-            # 处理图片
-            if resize_image(str(file_path), str(output_file), target_size):
-                processed_images += 1
-            else:
-                failed_images += 1
+            image_files.append(file_path)
+    
+    # 按时间顺序排序：先按文件夹，再按文件名
+    image_files = sorted(image_files, key=lambda x: (str(x.parent), x.name))
+    
+    print(f"📋 找到 {len(image_files)} 个图片文件（按时间顺序排列）")
+    
+    # 显示前几个文件以验证顺序
+    if len(image_files) > 0:
+        print("📂 文件处理顺序预览:")
+        for i, file_path in enumerate(image_files[:3]):
+            rel_path = file_path.relative_to(input_path)
+            print(f"   {i+1}. {rel_path}")
+        if len(image_files) > 3:
+            print(f"   ... 还有 {len(image_files)-3} 个文件")
+    print("=" * 60)
+    
+    # 遍历排序后的图片文件
+    for file_path in image_files:
+        total_images += 1
+        
+        # 构建输出文件路径，保持相对目录结构
+        relative_path = file_path.relative_to(input_path)
+        output_file = output_path / relative_path
+        
+        # 确保输出目录存在
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        print(f"\n📸 处理第 {total_images} 个图片:")
+        print(f"   文件: {relative_path}")
+        
+        # 检查原始尺寸并分类
+        try:
+            with Image.open(file_path) as img:
+                size = img.size
+                if size == (3648, 2736):
+                    huawei_count += 1
+                    print(f"   设备: HUAWEI P30 Pro")
+                elif size == (4096, 3072):
+                    vivo_count += 1
+                    print(f"   设备: vivo X100 Pro")
+                else:
+                    other_count += 1
+                    print(f"   设备: 其他 ({size[0]}x{size[1]})")
+        except:
+            pass
+        
+        # 处理图片
+        if resize_image(str(file_path), str(output_file), target_size):
+            processed_images += 1
+        else:
+            failed_images += 1
     
     # 输出统计结果
     print("\n" + "=" * 60)

@@ -60,8 +60,8 @@ class MosaicGenerator:
             image_files.extend(list(self.input_dir.rglob(f"*{ext}")))
             image_files.extend(list(self.input_dir.rglob(f"*{ext.upper()}")))
         
-        # 去重并按文件名排序
-        image_files = sorted(list(set(image_files)), key=lambda x: x.name)
+        # 去重并按时间顺序排序（先按文件夹，再按文件名）
+        image_files = sorted(list(set(image_files)), key=lambda x: (str(x.parent), x.name))
         return image_files
     
     def calculate_grid_layout(self, image_count):
