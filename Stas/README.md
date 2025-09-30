@@ -67,6 +67,7 @@ python pipeline.py NPU-Everyday-Sample --steps resize align timelapse mosaic sta
 - 📅 支持多种显示模式（年度/月度/每日）
 - 🔍 自动验证日期处理（闰年、月份天数）
 - 📊 详细的统计汇总信息
+
 ### 3. 命令行直接使用
 ```bash
 # 生成年度统计

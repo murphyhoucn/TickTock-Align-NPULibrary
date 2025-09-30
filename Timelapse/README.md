@@ -346,10 +346,7 @@ ERROR - FFmpeg not found in PATH
 ```
 **解决方案**:
 ```bash
-# Windows (使用包管理器)
-winget install FFmpeg
-
-# 或手动下载并添加到PATH
+# Windows 手动下载并添加到PATH
 # 下载: https://ffmpeg.org/download.html
 ```
 
